@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000; // Use dynamic port for deployment
+const port = process.env.PORT || 8080;// Use dynamic port for deployment
 
 let scrapedData = []; // Store the scraped data here
 
