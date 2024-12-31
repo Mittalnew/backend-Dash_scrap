@@ -24,7 +24,7 @@ async function scrapeData() {
     const url = 'https://www.indiatoday.in/';
     console.log("Navigating to URL:", url);
 
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
 
     console.log("Waiting for selectors...");
     await page.waitForSelector('.B1S3_content__wrap__9mSB6');
