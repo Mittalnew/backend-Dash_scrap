@@ -1,8 +1,18 @@
-# Use official Node.js image as the base image
+# Base image
 FROM node:18-slim
 
-# Install Chromium dependencies for Puppeteer
-RUN apt-get update && apt-get install -y \
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Use reliable mirrors and install dependencies
+RUN apt-get clean && \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
     libnss3 \
     libxss1 \
     libasound2 \
@@ -11,24 +21,25 @@ RUN apt-get update && apt-get install -y \
     fonts-liberation \
     libappindicator3-1 \
     xdg-utils \
-    --no-install-recommends && \
+    wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set the working directory inside the container
-WORKDIR /usr/src/app
+# Install Puppeteer
+RUN npm install puppeteer && \
+    groupadd -r pptruser && \
+    useradd -r -g pptruser -G audio,video pptruser && \
+    mkdir -p /home/pptruser/Downloads && \
+    chown -R pptruser:pptruser /home/pptruser
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Switch to the non-root user
+USER pptruser
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code
+# Copy the source code
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 8080
+# Expose the app port
+EXPOSE 3000
 
-# Start the app
+# Command to run the app
 CMD ["node", "index.js"]
