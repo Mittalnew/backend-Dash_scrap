@@ -1,82 +1,41 @@
-const puppeteer = require('puppeteer');
 const express = require('express');
+const { scrapeWebsite } = require('./scrapeUtils');
+const websiteConfigs = require('./websiteConfigs');
+
 const app = express();
-const port = process.env.PORT || 3000;// Use dynamic port for deployment
+const port = process.env.PORT || 3000;
 
-let scrapedData = []; // Store the scraped data here
+let scrapedData = {}; // Store scraped data for all websites
 
-// Scraping function
-async function scrapeData() {
+// Function to scrape all websites
+async function scrapeAllWebsites() {
   try {
-    console.log("Launching Puppeteer...");
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--window-size=1280x1024',
-      ],
-    });
-
-    const page = await browser.newPage();
-    const url = 'https://www.indiatoday.in/';
-    console.log("Navigating to URL:", url);
-
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-
-    console.log("Waiting for selectors...");
-    await page.waitForSelector('.B1S3_content__wrap__9mSB6');
-    await page.waitForSelector('.B1S3_story__shortcont__inicf');
-    await page.waitForSelector('.thumb.playIconThumbContainer');
-
-    console.log("Scraping data...");
-    const scrapedDataFromPage = await page.evaluate(() => {
-      let data = [];
-      const headlines = document.querySelectorAll('.B1S3_content__wrap__9mSB6');
-      const shortContents = document.querySelectorAll('.B1S3_story__shortcont__inicf');
-      const imageContainers = document.querySelectorAll('.thumb.playIconThumbContainer');
-
-      headlines.forEach((headline, index) => {
-        const imageElement = imageContainers[index]
-          ? imageContainers[index].querySelector('img')
-          : null;
-        const imageSrc = imageElement ? imageElement.src : 'No image available';
-        data.push({
-          title: headline.innerText.trim(),
-          content: shortContents[index]
-            ? shortContents[index].innerText.trim()
-            : 'No content available',
-          image: imageSrc,
-        });
-      });
-
-      return data;
-    });
-
-    await browser.close();
-    console.log("Scraping completed successfully:", scrapedDataFromPage);
-
-    scrapedData = scrapedDataFromPage; // Update global scraped data
+    const websites = Object.keys(websiteConfigs);
+    for (const website of websites) {
+      console.log(`Scraping ${website}...`);
+      scrapedData[website] = await scrapeWebsite(
+        websiteConfigs[website].url,
+        websiteConfigs[website].selectors
+      );
+    }
   } catch (err) {
-    console.error("Error during scraping:", err);
-    throw err; // Rethrow the error to be handled by the API
+    console.error("Error during scraping all websites:", err);
+    throw err;
   }
 }
 
-// Automatically scrape every 2 hours (7200000 milliseconds)
+// Automatically scrape every 7 days (604800000 milliseconds)
 setInterval(() => {
-  console.log("Triggering automatic scraping...");
-  scrapeData().catch((err) => console.error("Automatic scraping failed:", err));
-}, 7200000); // 2 hours
+  console.log("Triggering automatic scraping for all websites...");
+  scrapeAllWebsites().catch((err) => console.error("Automatic scraping failed:", err));
+}, 604800000);
 
-// API route to get the latest scraped data
+// API route to get mixed data from all sources
 app.get('/scrape', async (req, res) => {
   try {
-    if (scrapedData.length === 0) {
+    if (Object.keys(scrapedData).length === 0) {
       console.log("No data found, scraping now...");
-      await scrapeData();
+      await scrapeAllWebsites();
     }
     res.json(scrapedData); // Return scraped data as JSON
   } catch (error) {
@@ -89,4 +48,3 @@ app.get('/scrape', async (req, res) => {
 app.listen(port, '::', () => {
   console.log(`Server running on port ${port}`);
 });
-
