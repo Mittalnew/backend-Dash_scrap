@@ -116,6 +116,13 @@ async function scrapeTwitterTrends(skip = 0, limit = 1500) {
     console.log('Launching Puppeteer...');
     browser = await puppeteer.launch({
       headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+      ],
       protocolTimeout: 120000, // Increase protocol timeout to 120 seconds
     });
     const page = await browser.newPage();
