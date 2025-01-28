@@ -1,5 +1,8 @@
+
 const express = require('express');
-const { scrapeWebsite } = require('./scrapeUtils');
+const { scrapeWebsite, scrapeArticleContent } = require('./scrapeUtils');
+const { scrapeTwitterTrends } = require('./twitterTrends');
+const { scrapeRedditPopular } = require('./redditPopular'); 
 const websiteConfigs = require('./websiteConfigs');
 
 const app = express();
@@ -13,10 +16,25 @@ async function scrapeAllWebsites() {
     const websites = Object.keys(websiteConfigs);
     for (const website of websites) {
       console.log(`Scraping ${website}...`);
-      scrapedData[website] = await scrapeWebsite(
+      const homepageData = await scrapeWebsite(
         websiteConfigs[website].url,
         websiteConfigs[website].selectors
       );
+
+      // Scrape full content for each article
+      for (const article of homepageData) {
+        if (article.articleLink && article.articleLink !== 'No link available') {
+          console.log(`Scraping full content from ${article.articleLink}...`);
+          article.fullContent = await scrapeArticleContent(
+            article.articleLink,
+            websiteConfigs[website].articleSelectors
+          );
+        } else {
+          article.fullContent = 'No full content available';
+        }
+      }
+
+      scrapedData[website] = homepageData;
     }
   } catch (err) {
     console.error("Error during scraping all websites:", err);
@@ -41,6 +59,30 @@ app.get('/scrape', async (req, res) => {
   } catch (error) {
     console.error("Error in /scrape route:", error);
     res.status(500).json({ error: 'An error occurred during scraping' });
+  }
+});
+
+// New route for Twitter trends
+app.get('/twitter-trends', async (req, res) => {
+  try {
+    console.log('Fetching Twitter trends...');
+    const trends = await scrapeTwitterTrends();
+    res.json(trends);
+  } catch (error) {
+    console.error('Error in /twitter-trends route:', error);
+    res.status(500).json({ error: 'Failed to fetch Twitter trends' });
+  }
+});
+
+// New route for Reddit popular posts
+app.get('/reddit-popular', async (req, res) => {
+  try {
+    console.log('Fetching Reddit popular posts...');
+    const posts = await scrapeRedditPopular();
+    res.json(posts);
+  } catch (error) {
+    console.error('Error in /reddit-popular route:', error);
+    res.status(500).json({ error: 'Failed to fetch Reddit popular posts' });
   }
 });
 
