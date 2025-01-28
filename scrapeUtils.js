@@ -30,7 +30,7 @@ async function scrapeWebsite(url, selectors) {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--window-size=1280x1024',
+        '--single-process',
       ],
     });
 
