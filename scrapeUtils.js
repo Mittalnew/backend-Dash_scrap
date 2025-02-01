@@ -120,7 +120,7 @@ const puppeteer = require('puppeteer');
 // Function to scrape full article content from inner page
 async function scrapeArticleContent(articleUrl, articleSelectors) {
   try {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
     console.log(`Navigating to article URL: ${articleUrl}`);
 
