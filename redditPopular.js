@@ -110,6 +110,7 @@ async function scrapeRedditPopular(skip = 0, limit = 200) {
     console.log('Launching Puppeteer...');
     browser = await puppeteer.launch({
       headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox',  '--disable-dev-shm-usage'],
       protocolTimeout: 300000,
     });
     const page = await browser.newPage();

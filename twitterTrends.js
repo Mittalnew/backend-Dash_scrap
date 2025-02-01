@@ -114,6 +114,7 @@ async function scrapeTwitterTrends(skip = 0, limit = 100) {
   try {
     browser = await puppeteer.launch({
       headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox',  '--disable-dev-shm-usage'],
       slowMo: 0, // Disable slowMo for faster execution
       protocolTimeout: 60000, // Timeout in 60 seconds for each network request
     });
