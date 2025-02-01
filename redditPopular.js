@@ -110,14 +110,7 @@ async function scrapeRedditPopular(skip = 0, limit = 200) {
     console.log('Launching Puppeteer...');
     browser = await puppeteer.launch({
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-      ],
-      protocolTimeout: 300000, // Increased timeout to 5 minutes
+      protocolTimeout: 300000,
     });
     const page = await browser.newPage();
 
@@ -199,29 +192,34 @@ async function autoScrollAndCollectPosts(page) {
             const postKey = post.getAttribute('id') || post.querySelector('a[slot="title"]')?.innerText.trim();
             
             if (postKey) {
-              const postData = {
-                title: post.querySelector('a[slot="title"]')?.innerText.trim() || 'No title',
-                url: (() => {
-                  const link = post.querySelector('a[slot="full-post-link"]');
-                  return link?.href ? 
-                    (link.href.startsWith('/') ? `https://www.reddit.com${link.href}` : link.href) 
-                    : 'No URL';
-                })(),
-                upvotes: post.querySelector('faceplate-number[number][type="upvote"]')?.innerText.trim() || 'No upvotes',
-                comments: post.querySelector('faceplate-number[number][type="comment"]')?.innerText.trim() || 'No comments',
-                subreddit: post.querySelector('a[data-testid="subreddit-name"]')?.innerText.trim() || 'No subreddit',
-                profileImage: post.querySelector('img[alt^="r/"]')?.src || 'No profile image', // Profile image
-                image: post.querySelector('img.i18n-post-media-img')?.src || 
-                       post.querySelector('img.preview-img')?.src || 
-                       'No image', // Post image
-                video: post.querySelector('video')?.src || 
-                       post.querySelector('shreddit-media-ui')?.getAttribute('preview') || 
-                       'No video', // Post video
-                time: post.querySelector('time[datetime]')?.innerText.trim() || 'No time',
-              };
+              // Use try-catch to handle any issues with scraping a single post
+              try {
+                const postData = {
+                  title: post.querySelector('a[slot="title"]')?.innerText.trim() || 'No title',
+                  url: (() => {
+                    const link = post.querySelector('a[slot="full-post-link"]');
+                    return link?.href ? 
+                      (link.href.startsWith('/') ? `https://www.reddit.com${link.href}` : link.href) 
+                      : 'No URL';
+                  })(),
+                  upvotes: post.querySelector('faceplate-number[number][type="upvote"]')?.innerText.trim() || 'No upvotes',
+                  comments: post.querySelector('faceplate-number[number][type="comment"]')?.innerText.trim() || 'No comments',
+                  subreddit: post.querySelector('a[data-testid="subreddit-name"]')?.innerText.trim() || 'No subreddit',
+                  profileImage: post.querySelector('img[alt^="r/"]')?.src || 'No profile image', // Profile image
+                  image: post.querySelector('img.i18n-post-media-img')?.src || 
+                         post.querySelector('img.preview-img')?.src || 
+                         'No image', // Post image
+                  video: post.querySelector('video')?.src || 
+                         post.querySelector('shreddit-media-ui')?.getAttribute('preview') || 
+                         'No video', // Post video
+                  time: post.querySelector('time[datetime]')?.innerText.trim() || 'No time',
+                };
 
-              // Add to set to ensure unique posts
-              postsData.add(JSON.stringify(postData));
+                // Add to set to ensure unique posts
+                postsData.add(JSON.stringify(postData));
+              } catch (err) {
+                console.error('Error scraping post:', err.message);
+              }
             }
           });
 
