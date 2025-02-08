@@ -102,18 +102,23 @@
 // module.exports = { scrapeRedditPopular };
 
 
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium = require('chrome-aws-lambda');
 
 async function scrapeRedditPopular(skip = 0, limit = 200) {
   let browser;
   try {
     console.log('Launching Puppeteer...');
+    
+    // Use chrome-aws-lambda's Chromium
     browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox',  '--disable-dev-shm-usage'],
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath, // Using chrome-aws-lambda's Chromium
+      headless: chromium.headless,
       protocolTimeout: 300000,
-      executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' 
     });
+
     const page = await browser.newPage();
 
     // Set user-agent and headers
@@ -152,7 +157,6 @@ async function scrapeRedditPopular(skip = 0, limit = 200) {
 
     await browser.close();
 
-    // Return response with status, message, and data
     return {
       status: 'success',
       message: 'Data scraped successfully',
@@ -165,85 +169,12 @@ async function scrapeRedditPopular(skip = 0, limit = 200) {
     console.error('Error during Reddit scraping:', error);
     if (browser) await browser.close();
 
-    // Return error response
     return {
       status: 'error',
       message: 'Failed to scrape data',
       error: error.message,
     };
   }
-}
-
-async function autoScrollAndCollectPosts(page) {
-  return await page.evaluate(async () => {
-    const postsData = new Set();
-    const maxScrollAttempts = 20;
-    let scrollAttempts = 0;
-    let lastPostCount = 0;
-
-    const scrollAndCollect = () => {
-      return new Promise((resolve) => {
-        const scrollInterval = setInterval(() => {
-          // Scroll to bottom
-          window.scrollTo(0, document.body.scrollHeight);
-
-          // Collect posts
-          const postElements = document.querySelectorAll('shreddit-post');
-          postElements.forEach((post) => {
-            // Use a combination of attributes to create a unique key
-            const postKey = post.getAttribute('id') || post.querySelector('a[slot="title"]')?.innerText.trim();
-            
-            if (postKey) {
-              // Use try-catch to handle any issues with scraping a single post
-              try {
-                const postData = {
-                  title: post.querySelector('a[slot="title"]')?.innerText.trim() || 'No title',
-                  url: (() => {
-                    const link = post.querySelector('a[slot="full-post-link"]');
-                    return link?.href ? 
-                      (link.href.startsWith('/') ? `https://www.reddit.com${link.href}` : link.href) 
-                      : 'No URL';
-                  })(),
-                  upvotes: post.querySelector('faceplate-number[number][type="upvote"]')?.innerText.trim() || 'No upvotes',
-                  comments: post.querySelector('faceplate-number[number][type="comment"]')?.innerText.trim() || 'No comments',
-                  subreddit: post.querySelector('a[data-testid="subreddit-name"]')?.innerText.trim() || 'No subreddit',
-                  profileImage: post.querySelector('img[alt^="r/"]')?.src || 'No profile image', // Profile image
-                  image: post.querySelector('img.i18n-post-media-img')?.src || 
-                         post.querySelector('img.preview-img')?.src || 
-                         'No image', // Post image
-                  video: post.querySelector('video')?.src || 
-                         post.querySelector('shreddit-media-ui')?.getAttribute('preview') || 
-                         'No video', // Post video
-                  time: post.querySelector('time[datetime]')?.innerText.trim() || 'No time',
-                };
-
-                // Add to set to ensure unique posts
-                postsData.add(JSON.stringify(postData));
-              } catch (err) {
-                console.error('Error scraping post:', err.message);
-              }
-            }
-          });
-
-          // Check if new posts have been added
-          if (postsData.size > lastPostCount) {
-            lastPostCount = postsData.size;
-            scrollAttempts = 0;
-          } else {
-            scrollAttempts++;
-          }
-
-          // Stop conditions
-          if (scrollAttempts >= maxScrollAttempts || postsData.size >= 150) {
-            clearInterval(scrollInterval);
-            resolve(Array.from(postsData).map(JSON.parse));
-          }
-        }, 500); // Wait 500ms between scroll attempts
-      });
-    };
-
-    return await scrollAndCollect();
-  });
 }
 
 module.exports = { scrapeRedditPopular };

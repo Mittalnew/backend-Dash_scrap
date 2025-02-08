@@ -115,14 +115,19 @@
 
 
 
-const puppeteer = require('puppeteer');
-
+const chromium = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer-core');
 // Function to scrape full article content from inner page
 async function scrapeArticleContent(articleUrl, articleSelectors) {
   try {
-    const browser = await puppeteer.launch({ headless: true, 
-      args: ['--no-sandbox', '--disable-setuid-sandbox',  '--disable-dev-shm-usage'], 
+    const browser = await puppeteer.launch({
+       args: chromium.args,
+       defaultViewport: chromium.defaultViewport,
+       executablePath: await chromium.executablePath,
+       headless: chromium.headless,
       executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable'  });
+
+
     const page = await browser.newPage();
     console.log(`Navigating to article URL: ${articleUrl}`);
 
