@@ -41,7 +41,7 @@ async function scrapeAllWebsites() {
     throw err;
   }
 }
-
+ 
 // Automatically scrape every 7 days (604800000 milliseconds)
 setInterval(() => {
   console.log("Triggering automatic scraping for all websites...");
