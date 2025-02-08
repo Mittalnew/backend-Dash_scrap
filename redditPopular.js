@@ -112,6 +112,7 @@ async function scrapeRedditPopular(skip = 0, limit = 200) {
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox',  '--disable-dev-shm-usage'],
       protocolTimeout: 300000,
+      executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' 
     });
     const page = await browser.newPage();
 

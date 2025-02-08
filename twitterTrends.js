@@ -117,6 +117,7 @@ async function scrapeTwitterTrends(skip = 0, limit = 100) {
       args: ['--no-sandbox', '--disable-setuid-sandbox',  '--disable-dev-shm-usage'],
       slowMo: 0, // Disable slowMo for faster execution
       protocolTimeout: 60000, // Timeout in 60 seconds for each network request
+      executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' 
     });
     const page = await browser.newPage();
     page.setDefaultTimeout(30000); // Reduced timeout to 30 seconds
